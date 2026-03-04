@@ -3,6 +3,7 @@ import { DRIVERS, getDriverBySlug } from "@/lib/drivers";
 import { getProblems, getCards } from "@/lib/data";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { SelectableCard } from "@/components/session/SelectableCard";
+import { CustomCardAdder } from "@/components/session/CustomCardAdder";
 
 export async function generateStaticParams() {
   const params: { driver: string; problemIndex: string }[] = [];
@@ -70,8 +71,14 @@ export default async function ProblemPage({
 
       <div className="flex flex-col">
         {cards.map((card) => (
-          <SelectableCard key={card.index} card={card} driver={driver} />
+          <SelectableCard key={card.index} card={card} driver={driver} problemText={problem.thaiText} />
         ))}
+        <CustomCardAdder
+          driverSlug={driver.slug}
+          problemIndex={pIdx}
+          problemText={problem.thaiText}
+          driver={driver}
+        />
       </div>
     </main>
   );

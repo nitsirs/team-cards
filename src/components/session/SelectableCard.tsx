@@ -6,9 +6,9 @@ import type { Card } from "@/lib/types";
 import type { DriverMeta } from "@/lib/drivers";
 
 const STATUS_CONFIG = {
-  now:   { label: "ทำเลย",     className: "bg-green-100 text-green-700" },
-  later: { label: "เก็บไว้",   className: "bg-yellow-100 text-yellow-700" },
-  park:  { label: "ไม่เหมาะ",  className: "bg-gray-100 text-gray-400" },
+  easy:   { label: "ง่าย",  className: "bg-green-100 text-green-700" },
+  medium: { label: "กลาง",  className: "bg-yellow-100 text-yellow-700" },
+  hard:   { label: "ยาก",   className: "bg-red-100 text-red-700" },
 } as const;
 
 function AutoTextarea({ value, onChange, placeholder, className }: {
@@ -36,7 +36,7 @@ function AutoTextarea({ value, onChange, placeholder, className }: {
   );
 }
 
-export function SelectableCard({ card, driver }: { card: Card; driver: DriverMeta }) {
+export function SelectableCard({ card, driver, problemText }: { card: Card; driver: DriverMeta; problemText: string }) {
   const { isSelected, getSelectedCard, toggleCard, updateCard } = useSession();
   const [open, setOpen] = useState(false);
 
@@ -61,15 +61,15 @@ export function SelectableCard({ card, driver }: { card: Card; driver: DriverMet
 
         {card.notes && (
           <span className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded ${driver.bgLightClass} ${driver.textClass}`}>
-            🔧 {card.notes}
+            🔧 tool
           </span>
         )}
 
-        {/* Status pill (only when selected) */}
+        {/* Difficulty pill (only when selected) */}
         {selected && sc && (
           <button
             onClick={() => {
-              const next = sc.status === null ? "now" : sc.status === "now" ? "later" : sc.status === "later" ? "park" : null;
+              const next = sc.status === null ? "easy" : sc.status === "easy" ? "medium" : sc.status === "medium" ? "hard" : null;
               updateCard(sc.id, { status: next });
             }}
             className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full transition-colors ${sc.status ? STATUS_CONFIG[sc.status].className : "text-gray-300 hover:text-gray-500"}`}
@@ -85,6 +85,7 @@ export function SelectableCard({ card, driver }: { card: Card; driver: DriverMet
               driverSlug: card.driverSlug,
               problemIndex: card.problemIndex,
               cardIndex: card.index,
+              problemText,
               actionTitle: card.actionTitle,
               detailedAction: card.detailedAction,
             })
@@ -98,6 +99,9 @@ export function SelectableCard({ card, driver }: { card: Card; driver: DriverMet
       {/* Expanded content */}
       {open && (
         <div className="ml-5 pb-3 border-l-2 border-gray-100 pl-3">
+          {card.notes && (
+            <p className={`text-xs mb-1.5 ${driver.textClass}`}>🔧 {card.notes}</p>
+          )}
           {selected && sc ? (
             <>
               <AutoTextarea
@@ -116,7 +120,7 @@ export function SelectableCard({ card, driver }: { card: Card; driver: DriverMet
                 />
               </div>
               <div className="flex gap-1.5 mt-2">
-                {(["now", "later", "park"] as const).map((s) => (
+                {(["easy", "medium", "hard"] as const).map((s) => (
                   <button
                     key={s}
                     onClick={() => updateCard(sc.id, { status: sc.status === s ? null : s })}

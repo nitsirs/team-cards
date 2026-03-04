@@ -6,11 +6,11 @@ import { DRIVERS } from "@/lib/drivers";
 // Replace with your Google Apps Script Web App URL to enable Sheets posting
 const SHEETS_URL = "";
 
-const STATUS_LABELS = { now: "ทำเลย ✓", later: "เก็บไว้", park: "ไม่เหมาะกับเรา" } as const;
-const STATUS_STYLE = {
-  now: "bg-green-100 text-green-700",
-  later: "bg-yellow-100 text-yellow-700",
-  park: "bg-gray-100 text-gray-400",
+const DIFF_LABEL = { easy: "ง่าย", medium: "กลาง", hard: "ยาก" } as const;
+const DIFF_STYLE = {
+  easy:   "bg-green-100 text-green-700",
+  medium: "bg-yellow-100 text-yellow-700",
+  hard:   "bg-red-100 text-red-700",
 } as const;
 
 function buildMailtoBody(cards: SelectedCard[]): string {
@@ -29,17 +29,18 @@ function buildMailtoBody(cards: SelectedCard[]): string {
   for (const [slug, driverCards] of Object.entries(byDriver)) {
     const driver = DRIVERS.find((d) => d.slug === slug);
     lines.push(`━━━ ${driver?.thaiName ?? slug} ━━━`);
-    const groups: [string, SelectedCard[]][] = [
-      ["ทำเลย ✓", driverCards.filter((c) => c.status === "now")],
-      ["เก็บไว้", driverCards.filter((c) => c.status === "later")],
-      ["ไม่เหมาะกับเรา", driverCards.filter((c) => c.status === "park")],
-      ["ยังไม่จัดเรียง", driverCards.filter((c) => c.status === null)],
-    ];
-    for (const [label, grp] of groups) {
-      if (!grp.length) continue;
-      lines.push(`\n${label}:`);
-      for (const c of grp) {
-        lines.push(`  • ${c.editedTitle}`);
+
+    const byProblem = new Map<string, SelectedCard[]>();
+    for (const c of driverCards) {
+      if (!byProblem.has(c.problemText)) byProblem.set(c.problemText, []);
+      byProblem.get(c.problemText)!.push(c);
+    }
+
+    for (const [problemText, pCards] of byProblem) {
+      lines.push(`\n▸ ${problemText}`);
+      for (const c of pCards) {
+        const diff = c.status ? ` [${DIFF_LABEL[c.status]}]` : "";
+        lines.push(`  • ${c.editedTitle}${diff}`);
         if (c.note) lines.push(`    📝 ${c.note}`);
       }
     }
@@ -74,11 +75,19 @@ export function ActionPlanView({ onClose }: { onClose: () => void }) {
   const body = encodeURIComponent(buildMailtoBody(cards));
   const mailtoHref = `mailto:?subject=${subject}&body=${body}`;
 
-  // Group by driver (maintaining driver order)
-  const driverGroups = DRIVERS.map((driver) => ({
-    driver,
-    cards: cards.filter((c) => c.driverSlug === driver.slug),
-  })).filter((g) => g.cards.length > 0);
+  // Group by driver → problem
+  const driverGroups = DRIVERS.map((driver) => {
+    const driverCards = cards.filter((c) => c.driverSlug === driver.slug);
+    if (!driverCards.length) return null;
+
+    const byProblem = new Map<string, SelectedCard[]>();
+    for (const c of driverCards) {
+      if (!byProblem.has(c.problemText)) byProblem.set(c.problemText, []);
+      byProblem.get(c.problemText)!.push(c);
+    }
+
+    return { driver, problems: Array.from(byProblem.entries()) };
+  }).filter(Boolean) as { driver: (typeof DRIVERS)[number]; problems: [string, SelectedCard[]][] }[];
 
   return (
     <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
@@ -98,46 +107,41 @@ export function ActionPlanView({ onClose }: { onClose: () => void }) {
           </div>
         ) : (
           <div className="flex flex-col gap-6">
-            {driverGroups.map(({ driver, cards: driverCards }) => {
-              const grouped = {
-                now:  driverCards.filter((c) => c.status === "now"),
-                later: driverCards.filter((c) => c.status === "later"),
-                park:  driverCards.filter((c) => c.status === "park"),
-                none:  driverCards.filter((c) => c.status === null),
-              };
-              return (
-                <div key={driver.slug} className={`bg-white rounded-2xl border border-gray-100 overflow-hidden border-t-4 ${driver.colorClass}`}>
-                  <div className="px-4 py-3 flex items-center gap-2">
-                    <span>{driver.icon}</span>
-                    <span className={`text-sm font-semibold ${driver.textClass}`}>{driver.thaiName}</span>
-                    <span className="text-xs text-gray-400 ml-auto">{driverCards.length} วิธีแก้</span>
-                  </div>
-                  <div className="divide-y divide-gray-50">
-                    {(["now", "later", "park", "none"] as const).map((status) => {
-                      const grp = grouped[status];
-                      if (!grp.length) return null;
-                      const label = status === "none" ? "ยังไม่จัดเรียง" : STATUS_LABELS[status];
-                      const style = status === "none" ? "bg-gray-50 text-gray-400" : STATUS_STYLE[status];
-                      return (
-                        <div key={status}>
-                          <div className="px-4 py-1.5">
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${style}`}>{label}</span>
-                          </div>
-                          {grp.map((c) => (
-                            <div key={c.id} className={`px-4 py-2.5 ${status === "park" ? "opacity-50" : ""}`}>
-                              <p className={`text-sm font-medium text-gray-800 leading-snug ${status === "park" ? "line-through" : ""}`}>
-                                {c.editedTitle}
-                              </p>
-                              {c.note && <p className="text-xs text-gray-400 mt-0.5">📝 {c.note}</p>}
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
+            {driverGroups.map(({ driver, problems }) => (
+              <div key={driver.slug} className={`bg-white rounded-2xl border border-gray-100 overflow-hidden border-t-4 ${driver.colorClass}`}>
+                <div className="px-4 py-3 flex items-center gap-2">
+                  <span>{driver.icon}</span>
+                  <span className={`text-sm font-semibold ${driver.textClass}`}>{driver.thaiName}</span>
+                  <span className="text-xs text-gray-400 ml-auto">
+                    {problems.reduce((n, [, cs]) => n + cs.length, 0)} วิธีแก้
+                  </span>
                 </div>
-              );
-            })}
+                <div className="divide-y divide-gray-50">
+                  {problems.map(([problemText, pCards]) => (
+                    <div key={problemText}>
+                      {/* Problem header */}
+                      <div className="px-4 py-2 bg-gray-50">
+                        <p className="text-xs text-gray-500 leading-snug">{problemText}</p>
+                      </div>
+                      {/* Cards */}
+                      {pCards.map((c) => (
+                        <div key={c.id} className="px-4 py-2.5 flex items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 leading-snug">{c.editedTitle}</p>
+                            {c.note && <p className="text-xs text-gray-400 mt-0.5">📝 {c.note}</p>}
+                          </div>
+                          {c.status && (
+                            <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full mt-0.5 ${DIFF_STYLE[c.status]}`}>
+                              {DIFF_LABEL[c.status]}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

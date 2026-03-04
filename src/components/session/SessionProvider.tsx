@@ -2,17 +2,19 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 
-const STORAGE_KEY = "workshop-session-v1";
+const STORAGE_KEY = "workshop-session-v2";
 
 export interface SelectedCard {
   id: string;
   driverSlug: string;
   problemIndex: number;
-  cardIndex: number;
+  cardIndex: number;       // -1 for custom cards
+  problemText: string;
+  isCustom?: boolean;
   editedTitle: string;
   editedDetail: string;
   note: string;
-  status: "now" | "later" | "park" | null;
+  status: "easy" | "medium" | "hard" | null;
 }
 
 interface SessionCtx {
@@ -23,10 +25,13 @@ interface SessionCtx {
     driverSlug: string;
     problemIndex: number;
     cardIndex: number;
+    problemText: string;
     actionTitle: string;
     detailedAction: string;
   }) => void;
+  addCustomCard: (driverSlug: string, problemIndex: number, problemText: string, title: string) => void;
   updateCard: (id: string, updates: Partial<SelectedCard>) => void;
+  removeCard: (id: string) => void;
   clearAll: () => void;
 }
 
@@ -71,15 +76,54 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const toggleCard = useCallback(
-    (base: { driverSlug: string; problemIndex: number; cardIndex: number; actionTitle: string; detailedAction: string }) => {
+    (base: {
+      driverSlug: string;
+      problemIndex: number;
+      cardIndex: number;
+      problemText: string;
+      actionTitle: string;
+      detailedAction: string;
+    }) => {
       const id = makeId(base.driverSlug, base.problemIndex, base.cardIndex);
       setCards((prev) => {
         if (prev.some((c) => c.id === id)) return prev.filter((c) => c.id !== id);
         return [
           ...prev,
-          { id, driverSlug: base.driverSlug, problemIndex: base.problemIndex, cardIndex: base.cardIndex, editedTitle: base.actionTitle, editedDetail: base.detailedAction, note: "", status: null },
+          {
+            id,
+            driverSlug: base.driverSlug,
+            problemIndex: base.problemIndex,
+            cardIndex: base.cardIndex,
+            problemText: base.problemText,
+            editedTitle: base.actionTitle,
+            editedDetail: base.detailedAction,
+            note: "",
+            status: null,
+          },
         ];
       });
+    },
+    []
+  );
+
+  const addCustomCard = useCallback(
+    (driverSlug: string, problemIndex: number, problemText: string, title: string) => {
+      const id = `${driverSlug}-p${problemIndex}-custom-${Date.now()}`;
+      setCards((prev) => [
+        ...prev,
+        {
+          id,
+          driverSlug,
+          problemIndex,
+          cardIndex: -1,
+          problemText,
+          isCustom: true,
+          editedTitle: title,
+          editedDetail: "",
+          note: "",
+          status: null,
+        },
+      ]);
     },
     []
   );
@@ -88,10 +132,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setCards((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
   }, []);
 
+  const removeCard = useCallback((id: string) => {
+    setCards((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
   const clearAll = useCallback(() => setCards([]), []);
 
   return (
-    <Ctx.Provider value={{ cards, isSelected, getSelectedCard, toggleCard, updateCard, clearAll }}>
+    <Ctx.Provider value={{ cards, isSelected, getSelectedCard, toggleCard, addCustomCard, updateCard, removeCard, clearAll }}>
       {children}
     </Ctx.Provider>
   );
