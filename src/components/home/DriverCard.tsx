@@ -11,19 +11,19 @@ export function DriverCard({ driver, problemCount, cardCount }: DriverCardProps)
   return (
     <Link
       href={`/${driver.slug}/`}
-      className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+      className="group flex items-center gap-4 bg-white rounded-xl border border-gray-100 px-4 py-3.5 hover:shadow-sm hover:border-gray-200 transition-all duration-150"
     >
-      <div className={`h-1.5 w-full ${driver.colorClass}`} />
-      <div className="p-6">
-        <div className="text-4xl mb-3">{driver.icon}</div>
-        <h2 className="text-lg font-semibold text-gray-800 mb-4 leading-snug">
-          {driver.thaiName}
-        </h2>
-        <div className={`inline-flex items-center gap-2 text-sm px-3 py-1 rounded-full ${driver.bgLightClass} ${driver.textClass} font-medium`}>
-          <span>{problemCount} ปัญหา</span>
-          <span className="opacity-40">·</span>
-          <span>{cardCount} การ์ด</span>
+      <div className={`w-1 self-stretch rounded-full flex-shrink-0 ${driver.colorClass}`} />
+      <span className="text-2xl flex-shrink-0">{driver.icon}</span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2">
+          <span className="font-semibold text-gray-800 text-sm">{driver.englishName}</span>
+          <span className="text-xs text-gray-400">{driver.thaiName}</span>
         </div>
+        <p className="text-xs text-gray-400 leading-snug mt-0.5">{driver.diagnostic}</p>
+      </div>
+      <div className={`flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${driver.bgLightClass} ${driver.textClass}`}>
+        {cardCount} วิธีแก้
       </div>
     </Link>
   );

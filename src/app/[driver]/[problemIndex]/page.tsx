@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { DRIVERS, getDriverBySlug } from "@/lib/drivers";
 import { getProblems, getCards } from "@/lib/data";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
-import { CardTile } from "@/components/cards/CardTile";
 
 export async function generateStaticParams() {
   const params: { driver: string; problemIndex: string }[] = [];
@@ -27,8 +27,8 @@ export async function generateMetadata({
   const problem = problems[pIdx];
   return {
     title: problem
-      ? `${problem.thaiText.slice(0, 40)}… | การ์ดทีม`
-      : "การ์ดทีม",
+      ? `${problem.thaiText.slice(0, 40)}… | คู่มือแก้ปัญหาทีม`
+      : "คู่มือแก้ปัญหาทีม",
   };
 }
 
@@ -51,7 +51,7 @@ export default async function ProblemPage({
   const cards = getCards(driver.slug, pIdx);
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-8">
+    <main className="max-w-2xl mx-auto px-4 py-8">
       <Breadcrumb
         items={[
           { label: "หน้าแรก", href: "/" },
@@ -59,17 +59,25 @@ export default async function ProblemPage({
           { label: `ปัญหาที่ ${pIdx + 1}`, href: `/${driver.slug}/p${pIdx}/` },
         ]}
       />
-      <div className={`mt-5 mb-7 p-5 rounded-xl border-l-4 ${driver.borderClass} bg-white shadow-sm`}>
-        <div className="flex items-center gap-2 mb-2">
+      <div className={`mt-5 mb-6 pl-4 border-l-4 ${driver.borderClass}`}>
+        <div className="flex items-center gap-2 mb-1">
           <span>{driver.icon}</span>
           <span className={`text-xs font-medium ${driver.textClass}`}>{driver.thaiName}</span>
         </div>
         <h1 className="text-lg font-bold text-gray-900 leading-snug">{problem.thaiText}</h1>
-        <p className="text-sm text-gray-500 mt-1">{cards.length} วิธีแก้ไข</p>
+        <p className="text-sm text-gray-400 mt-1">{cards.length} วิธีแก้</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+      <div className="flex flex-col gap-1">
         {cards.map((card) => (
-          <CardTile key={card.index} driver={driver} card={card} />
+          <Link
+            key={card.index}
+            href={`/${driver.slug}/p${pIdx}/c${card.index}/`}
+            className="group block py-2 border-b border-gray-50 last:border-0"
+          >
+            <p className="text-sm text-gray-700 font-medium leading-snug group-hover:text-gray-900 transition-colors">{card.actionTitle}</p>
+            <p className="text-xs text-gray-400 leading-snug mt-0.5 line-clamp-1">{card.detailedAction}</p>
+          </Link>
         ))}
       </div>
     </main>

@@ -10,8 +10,8 @@ const sarabun = Sarabun({
 });
 
 export const metadata: Metadata = {
-  title: "การ์ดทีม | คู่มือแก้ปัญหาทีม",
-  description: "เรียกดู 189 การ์ดวิธีแก้ปัญหาทีมใน 7 หมวดหมู่",
+  title: "คู่มือแก้ปัญหาทีม",
+  description: "เรียกดู 189 วิธีแก้ปัญหาทีมใน 7 หมวดหมู่",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <div className="flex-1">{children}</div>
         <footer className="py-6 text-center text-sm text-gray-400 border-t border-gray-200 mt-8">
-          การ์ดทีม — คู่มือแก้ปัญหาทีม
+          คู่มือแก้ปัญหาทีม
         </footer>
       </body>
     </html>

@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { DRIVERS, getDriverBySlug } from "@/lib/drivers";
 import { getProblems, getCards, getCard } from "@/lib/data";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
@@ -32,7 +31,7 @@ export async function generateMetadata({
   const pIdx = parseInt(problemIndex.replace("p", ""));
   const cIdx = parseInt(cardIndex.replace("c", ""));
   const card = driver ? getCard(driver.slug, pIdx, cIdx) : null;
-  return { title: card ? `${card.actionTitle} | การ์ดทีม` : "การ์ดทีม" };
+  return { title: card ? `${card.actionTitle} | คู่มือแก้ปัญหาทีม` : "คู่มือแก้ปัญหาทีม" };
 }
 
 export default async function CardPage({
@@ -65,88 +64,50 @@ export default async function CardPage({
         items={[
           { label: "หน้าแรก", href: "/" },
           { label: driver.thaiName, href: `/${driver.slug}/` },
-          {
-            label: `ปัญหาที่ ${pIdx + 1}`,
-            href: `/${driver.slug}/p${pIdx}/`,
-          },
-          {
-            label: `การ์ด ${cIdx + 1}`,
-            href: `/${driver.slug}/p${pIdx}/c${cIdx}/`,
-          },
+          { label: `ปัญหาที่ ${pIdx + 1}`, href: `/${driver.slug}/p${pIdx}/` },
         ]}
       />
 
-      {/* Card */}
       <div className={`mt-5 bg-white rounded-2xl shadow-sm border-t-4 ${driver.colorClass} overflow-hidden`}>
-        <div className="p-6 sm:p-8">
-          {/* Driver badge */}
-          <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${driver.bgLightClass} ${driver.textClass} mb-5`}>
+        <div className="p-5">
+          <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${driver.bgLightClass} ${driver.textClass} mb-3`}>
             <span>{driver.icon}</span>
             <span>{driver.thaiName}</span>
           </div>
-
-          {/* Card number */}
-          <p className="text-xs text-gray-400 mb-1">การ์ดที่ {cIdx + 1} จาก {allCards.length}</p>
-
-          {/* Title */}
-          <h1 className="text-xl font-bold text-gray-900 leading-snug mb-6">
-            {card.actionTitle}
-          </h1>
-
-          {/* Problem context */}
-          <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
-            <p className="text-xs text-gray-400 mb-1">ปัญหา</p>
-            <p className="text-sm text-gray-700 leading-relaxed">{problem.thaiText}</p>
+          <p className="text-xs text-gray-400 mb-1">วิธีแก้ที่ {cIdx + 1} จาก {allCards.length}</p>
+          <h1 className="text-xl font-bold text-gray-900 leading-snug mb-4">{card.actionTitle}</h1>
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">วิธีทำ</p>
+            <p className="text-gray-700 text-sm leading-relaxed">{card.detailedAction}</p>
           </div>
-
-          {/* Detailed action */}
-          <div className="mb-6">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">วิธีทำ</p>
-            <p className="text-gray-700 leading-relaxed">{card.detailedAction}</p>
-          </div>
-
-          {/* Notes */}
           {card.notes && (
-            <div className={`rounded-xl p-4 border ${driver.borderClass} ${driver.bgLightClass}`}>
-              <p className="text-xs font-semibold mb-1 ${driver.textClass}">📌 เครื่องมือ / อ้างอิง</p>
+            <div className={`rounded-xl p-3 border ${driver.borderClass} ${driver.bgLightClass}`}>
+              <p className={`text-xs font-semibold mb-1 ${driver.textClass}`}>📌 เครื่องมือ / อ้างอิง</p>
               <p className={`text-sm font-medium ${driver.textClass}`}>{card.notes}</p>
             </div>
           )}
         </div>
 
-        {/* Card navigation */}
         <div className="flex border-t border-gray-100">
-          {prevCard ? (
-            <Link
+          {prevCard && (
+            <a
               href={`/${driver.slug}/p${pIdx}/c${prevCard.index}/`}
               className="flex-1 flex items-center gap-2 px-5 py-3 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <span>←</span>
               <span className="truncate">{prevCard.actionTitle}</span>
-            </Link>
-          ) : (
-            <div className="flex-1" />
+            </a>
           )}
           {nextCard && (
-            <Link
+            <a
               href={`/${driver.slug}/p${pIdx}/c${nextCard.index}/`}
-              className="flex-1 flex items-center justify-end gap-2 px-5 py-3 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors border-l border-gray-100"
+              className={`flex-1 flex items-center justify-end gap-2 px-5 py-3 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors${prevCard ? " border-l border-gray-100" : ""}`}
             >
               <span className="truncate">{nextCard.actionTitle}</span>
               <span>→</span>
-            </Link>
+            </a>
           )}
         </div>
-      </div>
-
-      {/* Back links */}
-      <div className="mt-5 flex gap-4 text-sm">
-        <Link href={`/${driver.slug}/p${pIdx}/`} className="text-gray-500 hover:text-gray-700 transition-colors">
-          ← กลับไปดูการ์ดทั้งหมด
-        </Link>
-        <Link href={`/${driver.slug}/`} className="text-gray-400 hover:text-gray-600 transition-colors">
-          ← {driver.thaiName}
-        </Link>
       </div>
     </main>
   );

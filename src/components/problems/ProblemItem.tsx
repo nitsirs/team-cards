@@ -18,7 +18,7 @@ export function ProblemItem({ driver, problem }: ProblemItemProps) {
         <p className="text-gray-700 text-sm leading-snug">{problem.thaiText}</p>
       </div>
       <div className={`flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${driver.bgLightClass} ${driver.textClass}`}>
-        {problem.cardCount} การ์ด
+        {problem.cardCount} วิธีแก้
       </div>
     </Link>
   );
