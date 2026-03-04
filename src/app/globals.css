@@ -14,3 +14,22 @@
     @apply leading-relaxed;
   }
 }
+
+@media print {
+  /* When the action plan overlay is open, hide everything else */
+  body:has(.action-plan-overlay) > *:not(.action-plan-overlay) {
+    display: none !important;
+  }
+
+  /* Convert the fixed overlay to normal flow so all content prints */
+  .action-plan-overlay {
+    position: relative !important;
+    overflow: visible !important;
+    height: auto !important;
+    background: white !important;
+  }
+
+  body {
+    background: white !important;
+  }
+}

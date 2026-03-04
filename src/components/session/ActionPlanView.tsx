@@ -13,43 +13,6 @@ const DIFF_STYLE = {
   hard:   "bg-red-100 text-red-700",
 } as const;
 
-function buildMailtoBody(cards: SelectedCard[]): string {
-  const lines: string[] = [
-    "Action Plan",
-    `วันที่: ${new Date().toLocaleDateString("th-TH", { dateStyle: "long" })}`,
-    "",
-  ];
-
-  const byDriver: Record<string, SelectedCard[]> = {};
-  for (const c of cards) {
-    if (!byDriver[c.driverSlug]) byDriver[c.driverSlug] = [];
-    byDriver[c.driverSlug].push(c);
-  }
-
-  for (const [slug, driverCards] of Object.entries(byDriver)) {
-    const driver = DRIVERS.find((d) => d.slug === slug);
-    lines.push(`━━━ ${driver?.thaiName ?? slug} ━━━`);
-
-    const byProblem = new Map<string, SelectedCard[]>();
-    for (const c of driverCards) {
-      if (!byProblem.has(c.problemText)) byProblem.set(c.problemText, []);
-      byProblem.get(c.problemText)!.push(c);
-    }
-
-    for (const [problemText, pCards] of byProblem) {
-      lines.push(`\n▸ ${problemText}`);
-      for (const c of pCards) {
-        const diff = c.status ? ` [${DIFF_LABEL[c.status]}]` : "";
-        lines.push(`  • ${c.editedTitle}${diff}`);
-        if (c.note) lines.push(`    📝 ${c.note}`);
-      }
-    }
-    lines.push("");
-  }
-
-  return lines.join("\n");
-}
-
 async function postToSheets(cards: SelectedCard[]) {
   if (!SHEETS_URL) {
     alert("ยังไม่ได้ตั้งค่า Google Sheets URL");
@@ -71,10 +34,6 @@ async function postToSheets(cards: SelectedCard[]) {
 export function ActionPlanView({ onClose }: { onClose: () => void }) {
   const { cards, clearAll } = useSession();
 
-  const subject = encodeURIComponent(`Action Plan — ${new Date().toLocaleDateString("th-TH")}`);
-  const body = encodeURIComponent(buildMailtoBody(cards));
-  const mailtoHref = `mailto:?subject=${subject}&body=${body}`;
-
   // Group by driver → problem
   const driverGroups = DRIVERS.map((driver) => {
     const driverCards = cards.filter((c) => c.driverSlug === driver.slug);
@@ -90,16 +49,22 @@ export function ActionPlanView({ onClose }: { onClose: () => void }) {
   }).filter(Boolean) as { driver: (typeof DRIVERS)[number]; problems: [string, SelectedCard[]][] }[];
 
   return (
-    <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-white overflow-y-auto action-plan-overlay">
       {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-10">
+      <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-10 print:hidden">
         <h2 className="font-bold text-gray-900">Action Plan</h2>
         <button onClick={onClose} className="text-sm text-gray-400 hover:text-gray-700 transition-colors">
           ← กลับ
         </button>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 pb-32">
+      <div className="max-w-2xl mx-auto px-4 py-6 pb-24 print:pb-4">
+        {/* Print-only title */}
+        <div className="hidden print:block mb-6 pb-4 border-b border-gray-200">
+          <h1 className="text-xl font-bold text-gray-900">Action Plan</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{new Date().toLocaleDateString("th-TH", { dateStyle: "long" })}</p>
+        </div>
+
         {cards.length === 0 ? (
           <div className="text-center py-20 text-gray-300">
             <p className="text-4xl mb-3">📋</p>
@@ -108,7 +73,7 @@ export function ActionPlanView({ onClose }: { onClose: () => void }) {
         ) : (
           <div className="flex flex-col gap-6">
             {driverGroups.map(({ driver, problems }) => (
-              <div key={driver.slug} className={`bg-white rounded-2xl border border-gray-100 overflow-hidden border-t-4 ${driver.colorClass}`}>
+              <div key={driver.slug} className={`bg-white rounded-2xl border border-gray-100 overflow-hidden border-t-4 break-inside-avoid ${driver.colorClass}`}>
                 <div className="px-4 py-3 flex items-center gap-2">
                   <span>{driver.icon}</span>
                   <span className={`text-sm font-semibold ${driver.textClass}`}>{driver.thaiName}</span>
@@ -119,11 +84,9 @@ export function ActionPlanView({ onClose }: { onClose: () => void }) {
                 <div className="divide-y divide-gray-50">
                   {problems.map(([problemText, pCards]) => (
                     <div key={problemText}>
-                      {/* Problem header */}
                       <div className="px-4 py-2 bg-gray-50">
                         <p className="text-xs text-gray-500 leading-snug">{problemText}</p>
                       </div>
-                      {/* Cards */}
                       {pCards.map((c) => (
                         <div key={c.id} className="px-4 py-2.5 flex items-start gap-2">
                           <div className="flex-1 min-w-0">
@@ -147,30 +110,28 @@ export function ActionPlanView({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Fixed bottom actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 py-3">
-        <div className="max-w-2xl mx-auto flex flex-col gap-2">
-          <a
-            href={mailtoHref}
-            className="w-full py-3 rounded-xl bg-gray-900 text-white text-sm font-medium text-center hover:bg-gray-700 transition-colors"
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 py-3 print:hidden">
+        <div className="max-w-2xl mx-auto flex gap-2">
+          <button
+            onClick={() => window.print()}
+            className="flex-1 py-3 rounded-xl bg-gray-900 text-white text-sm font-medium text-center hover:bg-gray-700 transition-colors"
           >
-            📧 ส่งให้ตัวเองทางอีเมล
-          </a>
-          <div className="flex gap-2">
-            {SHEETS_URL && (
-              <button
-                onClick={() => postToSheets(cards)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                📊 ส่งข้อมูลให้ Facilitator
-              </button>
-            )}
+            🖨️ บันทึก PDF
+          </button>
+          {SHEETS_URL && (
             <button
-              onClick={() => { clearAll(); onClose(); }}
-              className="flex-1 py-2.5 rounded-xl border border-red-100 text-sm text-red-400 hover:bg-red-50 transition-colors"
+              onClick={() => postToSheets(cards)}
+              className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
             >
-              ล้างทั้งหมด
+              📊 ส่งข้อมูลให้ Facilitator
             </button>
-          </div>
+          )}
+          <button
+            onClick={() => { clearAll(); onClose(); }}
+            className="py-3 px-4 rounded-xl border border-red-100 text-sm text-red-400 hover:bg-red-50 transition-colors"
+          >
+            ล้าง
+          </button>
         </div>
       </div>
     </div>
