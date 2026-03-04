@@ -68,16 +68,24 @@ export default async function ProblemPage({
         <p className="text-sm text-gray-400 mt-1">{cards.length} วิธีแก้</p>
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col">
         {cards.map((card) => (
-          <Link
-            key={card.index}
-            href={`/${driver.slug}/p${pIdx}/c${card.index}/`}
-            className="group block py-2 border-b border-gray-50 last:border-0"
-          >
-            <p className="text-sm text-gray-700 font-medium leading-snug group-hover:text-gray-900 transition-colors">{card.actionTitle}</p>
-            <p className="text-xs text-gray-400 leading-snug mt-0.5 line-clamp-1">{card.detailedAction}</p>
-          </Link>
+          <details key={card.index} className="group border-b border-gray-50 last:border-0">
+            <summary className="flex items-center gap-2 py-2 cursor-pointer list-none min-w-0">
+              <span className="text-gray-300 text-xs flex-shrink-0 transition-transform group-open:rotate-90">▶</span>
+              <span className="text-sm font-semibold text-gray-800 flex-shrink-0">{card.actionTitle}</span>
+              <span className="text-xs text-gray-400 truncate flex-1 group-open:hidden">{card.detailedAction}</span>
+              {card.notes && <span className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded ${driver.bgLightClass} ${driver.textClass}`}>🔧 {card.notes}</span>}
+            </summary>
+            <div className="ml-4 pb-3">
+              <p className="text-xs text-gray-500 leading-relaxed">{card.detailedAction}</p>
+              {card.notes && (
+                <p className={`mt-1.5 text-xs font-medium px-2 py-1 rounded-md inline-block ${driver.bgLightClass} ${driver.textClass}`}>
+                  🔧 {card.notes}
+                </p>
+              )}
+            </div>
+          </details>
         ))}
       </div>
     </main>

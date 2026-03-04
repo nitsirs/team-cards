@@ -82,7 +82,7 @@ export default async function CardPage({
           </div>
           {card.notes && (
             <div className={`rounded-xl p-3 border ${driver.borderClass} ${driver.bgLightClass}`}>
-              <p className={`text-xs font-semibold mb-1 ${driver.textClass}`}>📌 เครื่องมือ / อ้างอิง</p>
+              <p className={`text-xs font-semibold mb-1 ${driver.textClass}`}>🔧 เครื่องมือ / อ้างอิง</p>
               <p className={`text-sm font-medium ${driver.textClass}`}>{card.notes}</p>
             </div>
           )}
