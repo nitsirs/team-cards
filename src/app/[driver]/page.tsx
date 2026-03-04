@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { DRIVERS, getDriverBySlug } from "@/lib/drivers";
 import { getProblems, getCards } from "@/lib/data";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { SelectableCard } from "@/components/session/SelectableCard";
 
 export async function generateStaticParams() {
   return DRIVERS.map((d) => ({ driver: d.slug }));
@@ -51,22 +51,7 @@ export default async function DriverPage({ params }: { params: Promise<{ driver:
               </summary>
               <div className="flex flex-col pl-4 pt-1 pb-2">
                 {cards.map((card) => (
-                  <details key={card.index} className="group/card border-b border-gray-50 last:border-0">
-                    <summary className="flex items-center gap-2 py-1.5 cursor-pointer list-none min-w-0">
-                      <span className="text-gray-300 text-xs flex-shrink-0 transition-transform group-open/card:rotate-90">▶</span>
-                      <span className="text-sm font-semibold text-gray-800 flex-shrink-0">{card.actionTitle}</span>
-                      <span className="text-xs text-gray-400 truncate flex-1 group-open/card:hidden">{card.detailedAction}</span>
-                      {card.notes && <span className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded ${driver.bgLightClass} ${driver.textClass}`}>🔧 {card.notes}</span>}
-                    </summary>
-                    <div className="ml-4 pb-2">
-                      <p className="text-xs text-gray-500 leading-relaxed">{card.detailedAction}</p>
-                      {card.notes && (
-                        <p className={`mt-1.5 text-xs font-medium px-2 py-1 rounded-md inline-block ${driver.bgLightClass} ${driver.textClass}`}>
-                          🔧 {card.notes}
-                        </p>
-                      )}
-                    </div>
-                  </details>
+                  <SelectableCard key={card.index} card={card} driver={driver} />
                 ))}
               </div>
             </details>

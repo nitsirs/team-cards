@@ -3,9 +3,19 @@ import fs from "fs";
 import path from "path";
 import Papa from "papaparse";
 import { DRIVERS } from "./drivers";
-import type { Problem, Card } from "./types";
+import type { Problem, Card, AllData } from "./types";
 
-interface RawRow {
+const DRIVER_MAP: Record<string, string> = {
+  "ความสามารถ (Capability)": "capability",
+  "การให้ความร่วมมือ (Cooperation)": "cooperation",
+  "การประสานงาน (Coordination)": "coordination",
+  "การสื่อสาร (Communication)": "communication",
+  "กระบวนการคิดของทีม (Cognitions)": "cognitions",
+  "การโค้ชชิ่ง (Coaching)": "coaching",
+  "สภาพแวดล้อม (Conditions)": "conditions",
+};
+
+interface CsvRow {
   "หมวดหมู่ (Driver)": string;
   "ปัญหาที่เจอ (Potential Concern)": string;
   "ชื่อวิธีแก้ (Action Title)": string;
@@ -13,67 +23,85 @@ interface RawRow {
   "โน้ต/เครื่องมือที่ต้องเตรียม (อ้างอิงจากหนังสือเท่านั้น)": string;
 }
 
-let _parsed: RawRow[] | null = null;
+interface DriverData {
+  problems: {
+    thaiText: string;
+    cards: { actionTitle: string; detailedAction: string; notes: string | null }[];
+  }[];
+}
 
-function getAllRows(): RawRow[] {
-  if (_parsed) return _parsed;
+let _data: Record<string, DriverData> | null = null;
+
+function getData(): Record<string, DriverData> {
+  if (_data) return _data;
   const csvPath = path.join(process.cwd(), "card.csv");
   const csvText = fs.readFileSync(csvPath, "utf-8");
-  const result = Papa.parse<RawRow>(csvText, {
-    header: true,
-    skipEmptyLines: true,
-  });
-  _parsed = result.data.filter((r) => r["หมวดหมู่ (Driver)"]?.trim());
-  return _parsed;
+  const { data } = Papa.parse<CsvRow>(csvText, { header: true, skipEmptyLines: true });
+
+  const result: Record<string, DriverData> = {};
+  for (const row of data) {
+    const driverLabel = row["หมวดหมู่ (Driver)"]?.trim();
+    const problemText = row["ปัญหาที่เจอ (Potential Concern)"]?.trim();
+    const actionTitle = row["ชื่อวิธีแก้ (Action Title)"]?.trim();
+    const detailedAction = row["วิธีทำแบบละเอียด (Detailed Action)"]?.trim();
+    const notes =
+      row["โน้ต/เครื่องมือที่ต้องเตรียม (อ้างอิงจากหนังสือเท่านั้น)"]?.trim() || null;
+
+    if (!driverLabel || !problemText || !actionTitle) continue;
+    const slug = DRIVER_MAP[driverLabel];
+    if (!slug) continue;
+
+    if (!result[slug]) result[slug] = { problems: [] };
+    let problem = result[slug].problems.find((p) => p.thaiText === problemText);
+    if (!problem) {
+      problem = { thaiText: problemText, cards: [] };
+      result[slug].problems.push(problem);
+    }
+    problem.cards.push({ actionTitle, detailedAction, notes });
+  }
+
+  _data = result;
+  return _data;
 }
 
 export function getDriverStats(): Record<string, { problemCount: number; cardCount: number }> {
-  const rows = getAllRows();
+  const data = getData();
   return Object.fromEntries(
     DRIVERS.map((driver) => {
-      const driverRows = rows.filter((r) => r["หมวดหมู่ (Driver)"] === driver.csvLabel);
-      const problemSet = new Set(driverRows.map((r) => r["ปัญหาที่เจอ (Potential Concern)"]));
-      return [driver.slug, { problemCount: problemSet.size, cardCount: driverRows.length }];
+      const d = data[driver.slug];
+      const problemCount = d?.problems.length ?? 0;
+      const cardCount = d?.problems.reduce((s, p) => s + p.cards.length, 0) ?? 0;
+      return [driver.slug, { problemCount, cardCount }];
     })
   );
 }
 
 export function getProblems(driverSlug: string): Problem[] {
-  const driver = DRIVERS.find((d) => d.slug === driverSlug);
-  if (!driver) return [];
-  const rows = getAllRows().filter((r) => r["หมวดหมู่ (Driver)"] === driver.csvLabel);
-  const seen = new Map<string, number>();
-  rows.forEach((r) => {
-    const p = r["ปัญหาที่เจอ (Potential Concern)"];
-    if (!seen.has(p)) seen.set(p, seen.size);
-  });
-  return Array.from(seen.entries()).map(([text, index]) => ({
+  const problems = getData()[driverSlug]?.problems ?? [];
+  return problems.map((p, index) => ({
     index,
-    thaiText: text,
-    cardCount: rows.filter((r) => r["ปัญหาที่เจอ (Potential Concern)"] === text).length,
+    thaiText: p.thaiText,
+    cardCount: p.cards.length,
   }));
 }
 
 export function getCards(driverSlug: string, problemIndex: number): Card[] {
-  const driver = DRIVERS.find((d) => d.slug === driverSlug);
-  if (!driver) return [];
-  const rows = getAllRows().filter((r) => r["หมวดหมู่ (Driver)"] === driver.csvLabel);
-  const problems = getProblems(driverSlug);
-  const problem = problems[problemIndex];
+  const problem = getData()[driverSlug]?.problems[problemIndex];
   if (!problem) return [];
-  return rows
-    .filter((r) => r["ปัญหาที่เจอ (Potential Concern)"] === problem.thaiText)
-    .map((r, idx) => ({
-      index: idx,
-      driverSlug,
-      problemIndex,
-      actionTitle: r["ชื่อวิธีแก้ (Action Title)"],
-      detailedAction: r["วิธีทำแบบละเอียด (Detailed Action)"],
-      notes: r["โน้ต/เครื่องมือที่ต้องเตรียม (อ้างอิงจากหนังสือเท่านั้น)"]?.trim() || null,
-    }));
+  return problem.cards.map((c, index) => ({
+    index,
+    driverSlug,
+    problemIndex,
+    actionTitle: c.actionTitle,
+    detailedAction: c.detailedAction,
+    notes: c.notes,
+  }));
 }
 
 export function getCard(driverSlug: string, problemIndex: number, cardIndex: number): Card | null {
-  const cards = getCards(driverSlug, problemIndex);
-  return cards[cardIndex] ?? null;
+  return getCards(driverSlug, problemIndex)[cardIndex] ?? null;
+}
+
+export function getAllData(): AllData {
+  return getData() as AllData;
 }

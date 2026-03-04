@@ -10,6 +10,7 @@ export default async function HomePage() {
         <h1 className="text-2xl font-bold text-gray-900 mb-1">คู่มือแก้ปัญหาทีม</h1>
         <p className="text-sm text-gray-500">เลือกหมวดหมู่ที่ต้องการแก้ปัญหา</p>
       </div>
+
       <div className="flex flex-col gap-2">
         {DRIVERS.map((driver) => (
           <DriverCard
