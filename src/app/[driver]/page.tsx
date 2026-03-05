@@ -2,8 +2,7 @@ import { notFound } from "next/navigation";
 import { DRIVERS, getDriverBySlug } from "@/lib/drivers";
 import { getProblems, getCards } from "@/lib/data";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
-import { SelectableCard } from "@/components/session/SelectableCard";
-import { CustomCardAdder } from "@/components/session/CustomCardAdder";
+import { ProblemItem } from "@/components/drivers/ProblemItem";
 
 export async function generateStaticParams() {
   return DRIVERS.map((d) => ({ driver: d.slug }));
@@ -41,27 +40,12 @@ export default async function DriverPage({ params }: { params: Promise<{ driver:
         {problems.map((problem) => {
           const cards = getCards(driver.slug, problem.index);
           return (
-            <details key={problem.index} className="group/problem">
-              <summary className={`flex items-center gap-2 py-2 cursor-pointer list-none border-b ${driver.borderClass}`}>
-                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${driver.colorClass}`} />
-                <span className="text-sm font-semibold text-gray-700 leading-snug flex-1 group-hover/problem:text-gray-900 transition-colors">
-                  {problem.thaiText}
-                </span>
-                <span className="text-xs text-gray-400">{cards.length} วิธีแก้</span>
-                <span className="text-gray-400 text-xs transition-transform group-open/problem:rotate-90">▶</span>
-              </summary>
-              <div className="flex flex-col pl-4 pt-1 pb-2">
-                {cards.map((card) => (
-                  <SelectableCard key={card.index} card={card} driver={driver} problemText={problem.thaiText} />
-                ))}
-                <CustomCardAdder
-                  driverSlug={driver.slug}
-                  problemIndex={problem.index}
-                  problemText={problem.thaiText}
-                  driver={driver}
-                />
-              </div>
-            </details>
+            <ProblemItem
+              key={problem.index}
+              problem={problem}
+              cards={cards}
+              driver={driver}
+            />
           );
         })}
       </div>
