@@ -100,7 +100,14 @@ export function SelectableCard({ card, driver, problemText }: { card: Card; driv
       {open && (
         <div className="ml-5 pb-3 border-l-2 border-gray-100 pl-3">
           {card.notes && (
-            <p className={`text-xs mb-1.5 ${driver.textClass}`}>🔧 {card.notes}</p>
+            <div className="mb-2">
+              <p className={`text-xs font-medium ${driver.textClass}`}>🔧 {card.notes}</p>
+              {card.toolExplanation && (
+                <p className="text-xs text-gray-400 leading-relaxed mt-0.5 pl-2 border-l-2 border-gray-100">
+                  {card.toolExplanation}
+                </p>
+              )}
+            </div>
           )}
           {selected && sc ? (
             <>

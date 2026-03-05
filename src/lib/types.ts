@@ -11,6 +11,7 @@ export interface Card {
   actionTitle: string;
   detailedAction: string;
   notes: string | null;
+  toolExplanation: string | null;
 }
 
 export interface BreadcrumbItem {

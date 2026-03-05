@@ -30,6 +30,37 @@ interface DriverData {
   }[];
 }
 
+let _toolsMap: Map<string, string> | null = null;
+
+function getToolsMap(): Map<string, string> {
+  if (_toolsMap) return _toolsMap;
+  const csvPath = path.join(process.cwd(), "tool.csv");
+  const csvText = fs.readFileSync(csvPath, "utf-8");
+  const { data } = Papa.parse<{ Tools: string; Explaination: string }>(csvText, {
+    header: true,
+    skipEmptyLines: true,
+  });
+  _toolsMap = new Map(
+    data.map((row) => [row.Tools?.trim().toLowerCase(), row.Explaination?.trim() ?? ""])
+  );
+  return _toolsMap;
+}
+
+function findToolExplanation(notes: string | null): string | null {
+  if (!notes) return null;
+  const map = getToolsMap();
+  const notesLower = notes.toLowerCase();
+  // exact match
+  if (map.has(notesLower)) return map.get(notesLower) || null;
+  // partial: tool key contains notes, or notes contains tool key
+  for (const [key, explanation] of map) {
+    if (key.includes(notesLower) || notesLower.includes(key)) {
+      return explanation || null;
+    }
+  }
+  return null;
+}
+
 let _data: Record<string, DriverData> | null = null;
 
 function getData(): Record<string, DriverData> {
@@ -95,6 +126,7 @@ export function getCards(driverSlug: string, problemIndex: number): Card[] {
     actionTitle: c.actionTitle,
     detailedAction: c.detailedAction,
     notes: c.notes,
+    toolExplanation: findToolExplanation(c.notes),
   }));
 }
 
